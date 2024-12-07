@@ -13,7 +13,7 @@ const cartDisplayTable = document.getElementById("cart-display");
 const warningText2 = document.getElementById("warning-text2");
 const cancelBtn = document.getElementById("cancel");
 const proceedBtn = document.getElementById("proceed");
-const totaBill = document.getElementById("total-bill");
+const totalBill = document.getElementById("total-bill");
 
 // Stock Management elements
 const itemNameInput = document.getElementById("item-name");
@@ -52,13 +52,17 @@ function makeUpdates() {
 //Cash register functions and event handlers
 
 cancelBtn.addEventListener("click", () => {
+  clearCart();
+});
+
+function clearCart() {
   cart = [];
   total = 0;
   calculateBill();
   displayCart();
   makeUpdates();
-  totaBill.style.visibility = "hidden";
-});
+  totalBill.style.visibility = "hidden";
+}
 
 addToCartBtn.addEventListener("click", () => {
   const productName = productNameSelector.value;
@@ -127,8 +131,8 @@ function calculateBill() {
       minimumFractionDigits: 0,
     }).format(total);
     console.log(`the total is ` + formatedTotal);
-    totaBill.innerText = `Total: ${formatedTotal}`;
-    totaBill.style.visibility = "visible";
+    totalBill.innerText = `Total: ${formatedTotal}`;
+    totalBill.style.visibility = "visible";
   } else {
     console.log("cart is empty!");
   }
@@ -139,20 +143,47 @@ proceedBtn.addEventListener("click", () => {
 });
 
 function makeTransaction() {
+  const dateForTrans = new Date();
+  const transDate = new Intl.DateTimeFormat("en-GB", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(dateForTrans);
+
+  const timeOfTrans = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(dateForTrans);
+
+  const transId =
+    transDate.replace(/[/:-\s,]/g, "") +
+    String(transactions.length + 1).padStart(3, "0");
+
   if (cart.length > 0) {
-    const transaction = {
-      date: new Date(),
+    const trans = {
+      date: transDate,
+      time: timeOfTrans,
+      id: transId,
       products: cart,
-      total: total,
+      cartValue: total,
     };
-    transactions.push(transaction);
-    console.log(transactions);
+
     cart.forEach((item) => {
-      const stockIndex = stock.findIndex((product) => {
-        product.product === item.product;
-      });
-      stock[stockIndex].qty -= item.qty;
+      const stockIndex = stock.findIndex(
+        (product) => product.product === item.product
+      );
+      stock[stockIndex].qty -= item.quantity;
     });
+    transactions.unshift(trans);
+    console.log(transactions);
+    localStorage.clear();
+    localStorage.setItem("transactions", JSON.stringify(transactions));
+    localStorage.setItem("stock", JSON.stringify(stock));
+    cart = [];
+    total = 0;
+    clearCart();
     makeUpdates();
   }
 }
